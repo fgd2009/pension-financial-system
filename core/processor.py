@@ -191,9 +191,9 @@ class DataProcessor:
                 row['集合个人账户数'] = 0
 
             # 合计
-            row['受托资产合计'] = row['单一受托资产'] + row['集合受托资产']
-            row['投资资产合计'] = row['单一投资资产'] + row['集合投资资产']
-            row['账管规模合计'] = row['单一个人账户数'] + row['集合个人账户数']
+            row['受托资产合计'] = float(row['单一受托资产'] or 0) + float(row['集合受托资产'] or 0)
+            row['投资资产合计'] = float(row['单一投资资产'] or 0) + float(row['集合投资资产'] or 0)
+            row['账管规模合计'] = float(row['单一个人账户数'] or 0) + float(row['集合个人账户数'] or 0)
 
             result.append(row)
 
@@ -223,7 +223,7 @@ class DataProcessor:
             else:
                 row['集合计划客户数'] = 0
 
-            row['客户数合计'] = row['单一计划客户数'] + row['集合计划客户数']
+            row['客户数合计'] = float(row['单一计划客户数'] or 0) + float(row['集合计划客户数'] or 0)
             result.append(row)
 
         self.pivot_customer = pd.DataFrame(result)
@@ -254,8 +254,8 @@ class DataProcessor:
             row['curr托管'] = 0  # 手工填写
 
             # 计算合计
-            row['curr_total_1'] = curr_trustee + curr_account + curr_invest + row['curr托管']
-            row['curr_total'] = row['curr托管'] + row['curr_total_1']
+            row['curr_total_1'] = float(curr_trustee or 0) + float(curr_account or 0) + float(curr_invest or 0) + float(row['curr托管'] or 0)
+            row['curr_total'] = float(row['curr托管'] or 0) + float(row['curr_total_1'] or 0)
 
             # 增量计算(需要有上月数据才能计算)
             if self.kpi_scale is not None:
@@ -282,7 +282,7 @@ class DataProcessor:
                 'curr安心健养': pivot_row['客户数合计'],  # 从透视表获取
                 'curr托管': 0,  # 手工填写
             }
-            row['curr_total'] = row['curr安心健养'] + row['curr托管']
+            row['curr_total'] = float(row['curr安心健养'] or 0) + float(row['curr托管'] or 0)
             result.append(row)
 
         self.kpi_customer = pd.DataFrame(result)
