@@ -1,0 +1,123 @@
+# GitHub Actions 工作流 - Windows 打包
+# 养老金融通报数据自动化处理系统
+
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: 'Python 版本'
+        required: false
+        default: '3.11'
+        type: choice
+        options:
+          - '3.10'
+          - '3.11'
+          - '3.12'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    defaults:
+      run:
+        shell: pwsh
+    
+    steps:
+      # 1. 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # 2. 设置 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version || '3.11' }}
+          cache: 'pip'
+      
+      # 3. 安装依赖
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+      
+      # 4. 清理旧的打包文件
+      - name: Clean old builds
+        run: |
+          Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
+          Remove-Item -Force "*.spec" -ErrorAction SilentlyContinue
+      
+      # 5. PyInstaller 打包
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller main.py `
+            --name "养老金融通报数据处理系统" `
+            --windowed `
+            --onefile `
+            --hidden-import=openpyxl `
+            --hidden-import=pandas `
+            --hidden-import=numpy `
+            --hidden-import=tkinter `
+            --hidden-import=tkinter.ttk `
+            --hidden-import=tkinter.scrolledtext `
+            --hidden-import=tkinter.filedialog `
+            --hidden-import=tkinter.messagebox `
+            --hidden-import=core.config `
+            --hidden-import=core.processor `
+            --hidden-import=utils.excel_tool `
+            --hidden-import=utils.init_template
+      
+      # 6. 查看生成的 EXE
+      - name: List built files
+        run: |
+          Get-ChildItem -Path dist -Recurse | Select-Object Name, Length, @{N="SizeMB";E={[math]::Round($_.Length/1MB,2)}}
+      
+      # 7. 找到 EXE 文件并重命名为纯英文（避免编码问题）
+      - name: Rename EXE
+        run: |
+          $exe = Get-ChildItem -Path dist -Filter "*.exe" | Select-Object -First 1
+          if ($exe) {
+            Copy-Item $exe.FullName -Destination "dist/PensionFinSystem.exe"
+            Write-Host "EXE renamed to: dist/PensionFinSystem.exe"
+          }
+      
+      # 8. 上传 EXE 作为 Artifact
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PensionFinSystem-Windows-EXE
+          path: dist/PensionFinSystem.exe
+          retention-days: 7
+      
+      # 9. 验证 EXE 文件
+      - name: Verify EXE
+        run: |
+          $exePath = "dist/PensionFinSystem.exe"
+          if (Test-Path $exePath) {
+            $size = (Get-Item $exePath).Length / 1MB
+            Write-Host "✅ EXE file built successfully!"
+            Write-Host "   Size: $([math]::Round($size, 2)) MB"
+          } else {
+            Write-Host "❌ EXE file not found!"
+            exit 1
+          }
+
+  download:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download EXE
+        uses: actions/download-artifact@v4
+        with:
+          name: PensionFinSystem-Windows-EXE
+          path: output
+      
+      - name: List files
+        run: ls -lh output/
+      
+      - name: Show file info
+        run: |
+          echo "📦 Download the EXE from the Artifacts section above"
+          echo "   File: output/PensionFinSystem.exe"
