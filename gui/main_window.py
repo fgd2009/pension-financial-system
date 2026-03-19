@@ -113,7 +113,7 @@ class PensionFinancialApp:
 
     def _create_overview_tab(self):
         """创建概览标签页"""
-self.overview_frame = Frame(self.notebook)
+        self.overview_frame = Frame(self.notebook)
         self.notebook.add(self.overview_frame, text="数据概览")
 
         # 标题
@@ -247,15 +247,12 @@ self.overview_frame = Frame(self.notebook)
         # 数据行
         self.manual_entries = {}
         for row, branch in enumerate(BRANCHES, 1):
-            # 分行名称
             Label(table_frame, text=branch, padx=10, pady=3).grid(row=row, column=0, sticky="nsew")
 
-            # 托管规模输入框
             entr_scale = Entry(table_frame, width=15)
             entr_scale.grid(row=row, column=1, padx=5, pady=2)
             self.manual_entries[f"{branch}_scale"] = entr_scale
 
-            # 托管客户数输入框
             entr_customer = Entry(table_frame, width=15)
             entr_customer.grid(row=row, column=2, padx=5, pady=2)
             self.manual_entries[f"{branch}_customer"] = entr_customer
