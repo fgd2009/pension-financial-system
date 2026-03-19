@@ -14,7 +14,7 @@ build/
 
 # PyInstaller
 *.spec
-!pension_financial.spec
+!*.spec
 
 # IDE
 .vscode/
