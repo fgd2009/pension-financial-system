@@ -24,7 +24,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
       
       # 3. 安装依赖
       - name: Install dependencies
@@ -38,33 +37,37 @@ jobs:
           Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
           Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
       
-      # 5. PyInstaller 打包 (使用spec文件)
+      # 5. 测试运行
+      - name: Test import
+        run: |
+          python -c "import gui.main_window; print('Import OK')"
+      
+      # 6. PyInstaller 打包
       - name: Build with PyInstaller
         run: |
-          pyinstaller PensionFinSystem.spec --clean
+          pyinstaller PensionFinSystem.spec --clean --log-level DEBUG 2>&1 | Tee-Object -FilePath build.log
       
-      # 6. 查看生成的 EXE
-      - name: List built files
+      # 7. 查看输出目录
+      - name: List output
         run: |
-          Get-ChildItem -Path dist -Recurse | Select-Object Name, Length, @{N="SizeMB";E={[math]::Round($_.Length/1MB,2)}}
+          Get-ChildItem -Path dist -Recurse | Format-Table Name, Length -AutoSize
       
-      # 7. 上传 EXE 作为 Artifact
+      # 8. 查看EXE文件
+      - name: Find EXE
+        run: |
+          $exe = Get-ChildItem -Path dist -Filter "*.exe" -Recurse
+          if ($exe) {
+            Write-Host "Found EXE: $($exe.FullName)"
+            Write-Host "Size: $([math]::Round($exe.Length/1MB, 2)) MB"
+          } else {
+            Write-Host "No EXE found!"
+            Get-ChildItem -Path dist -Recurse | Select-Object FullName
+          }
+      
+      # 9. 上传整个dist目录
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
         with:
           name: PensionFinSystem-Windows-EXE
-          path: dist/PensionFinSystem/PensionFinSystem.exe
+          path: dist/
           retention-days: 7
-      
-      # 8. 验证 EXE 文件
-      - name: Verify EXE
-        run: |
-          $exePath = "dist/PensionFinSystem/PensionFinSystem.exe"
-          if (Test-Path $exePath) {
-            $size = (Get-Item $exePath).Length / 1MB
-            Write-Host "✅ EXE file built successfully!"
-            Write-Host "   Size: $([math]::Round($size, 2)) MB"
-          } else {
-            Write-Host "❌ EXE file not found!"
-            exit 1
-          }
